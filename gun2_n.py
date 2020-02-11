@@ -6,10 +6,10 @@ import time
 # print (dir(math))
 
 root = tk.Tk()
-fr = tk.Frame( root )
-root.geometry( '800x600' )
-canvas = tk.Canvas( root, bg='white' )
-canvas.pack( fill=tk.BOTH, expand=1 )
+fr = tk.Frame(root)
+root.geometry('800x600')
+canvas = tk.Canvas(root, bg='white')
+canvas.pack(fill=tk.BOTH, expand=1)
 
 
 class Ball:
@@ -26,7 +26,7 @@ class Ball:
         self.vx = 0
         self.vy = 0
         self.ay = 0.9
-        self.color = choice( ['blue', 'green', 'red', 'brown'] )
+        self.color = choice(['blue', 'green', 'grey'])
         self.id = canvas.create_oval(
             self.x - self.r,
             self.y - self.r,
@@ -62,15 +62,15 @@ class Ball:
             self.vx *= 0.9
             self.vy = 0
         if self.ay < 0.19 and self.vx < 0.2:
-            canvas.delete( self.id )
+            canvas.delete(self.id)
         self.x += self.vx
         self.y += self.vy
-        canvas.move( self.id, self.vx, self.vy )
+        canvas.move(self.id, self.vx, self.vy)
 
-    def hittest(self, obj):
-        cathet_x = max( self.x, obj.x ) - min( self.x, obj.x )
-        cathet_y = max( self.y, obj.y ) - min( self.y, obj.y )
-        space = math.sqrt( cathet_x ** 2 + cathet_y ** 2 )
+    def hit_test(self, obj):
+        cathet_x = max(self.x, obj.x) - min(self.x, obj.x)
+        cathet_y = max(self.y, obj.y) - min(self.y, obj.y)
+        space = math.sqrt(cathet_x ** 2 + cathet_y ** 2)
         if space <= self.r + obj.r:
             return True
         """Функция проверяет сталкивалкивается ли данный обьект с целью, описываемой в обьекте t1.
@@ -79,7 +79,29 @@ class Ball:
         Returns:
             Возвращает True в случае столкновения мяча и цели. В противном случае возвращает False.
         """
-        # FIXME
+
+    def ball_delete(self):
+        canvas.delete(self.id)
+
+
+class Texts:
+    def __init__(self):
+        global balls
+        self.points = 0
+        self.screen1 = canvas.create_text(400, 50, text='', font='28')
+        self.hits_screen = canvas.create_text(30, 30, text=self.points, font='28')
+
+    def hits(self):
+        canvas.itemconfig(self.hits_screen, text=self.points)
+
+    def try_s(self, obj):
+        canvas.itemconfig(self.screen1, text='Вы уничтожили цель за ' + str(len(obj)) + ' выстрелов')
+
+        # ??? canvas.itemconfig( screen1, text='' )
+
+    def delete_hits(self):
+        canvas.itemconfig(self.screen1, text='')
+        canvas.itemconfig(self.hits_screen, text='')
 
 
 class Gun:
@@ -87,9 +109,9 @@ class Gun:
         self.f2_power = 10
         self.f2_on = 0
         self.an = 1
-        self.id = canvas.create_line( 20, 450, 50, 420, width=7 )
+        self.id = canvas.create_line(20, 450, 50, 420, width=7)
 
-    def fire2_start(self, event):
+    def fire2_start(self, event=''):
         self.f2_on = 1
 
     def fire2_end(self, event):
@@ -98,109 +120,111 @@ class Gun:
         Происходит при отпускании кнопки мыши.
         Начальные значения компонент скорости мяча vx и vy зависят от положения мыши.
         """
-        global balls, bullet
-        bullet += 1
+        global balls
         new_ball = Ball()
-        self.an = math.atan( (event.y - new_ball.y) / (event.x - new_ball.x) )
-        new_ball.vx = self.f2_power * math.cos( self.an )
-        new_ball.vy = self.f2_power * math.sin( self.an )
+        self.an = math.atan((event.y - new_ball.y) / (event.x - new_ball.x))
+        new_ball.vx = self.f2_power * math.cos(self.an)
+        new_ball.vy = self.f2_power * math.sin(self.an)
         balls += [new_ball]
         self.f2_on = 0
         self.f2_power = 10
 
-    def targetting(self, event=0):
+    def targeting(self, event=''):
         """Прицеливание. Зависит от положения мыши."""
         if event:
-            self.an = math.atan( (event.y - 450) / (event.x - 20) )
+            self.an = math.atan((event.y - 450) / (event.x - 20))
         if self.f2_on:
-            canvas.itemconfig( self.id, fill='orange' )
+            canvas.itemconfig(self.id, fill='orange')
         else:
-            canvas.itemconfig( self.id, fill='black' )
-        canvas.coords( self.id, 20, 450,
-                       20 + max( self.f2_power, 20 ) * math.cos( self.an ),
-                       450 + max( self.f2_power, 20 ) * math.sin( self.an )
-                       )
+            canvas.itemconfig(self.id, fill='black')
+        canvas.coords(self.id, 20, 450,
+                      20 + max(self.f2_power, 20) * math.cos(self.an),
+                      450 + max(self.f2_power, 20) * math.sin(self.an)
+                      )
 
     def power_up(self):
         if self.f2_on:
             if self.f2_power < 100:
                 self.f2_power += 1
 
+    def gun_delete(self):
+        canvas.delete(self.id)
+
 
 class Target:
     def __init__(self):
+        self.x = rnd(600, 750)
+        self.y = rnd(50, 450)
+        self.r = rnd(2, 50)
+        self.vx = rnd(1, 10)
+        self.vy = rnd(1, 10)
+        self.color = 'red'
         self.points = 0
         self.live = 1
-        self.id = canvas.create_oval( 0, 0, 0, 0 )
-        self.id_points = canvas.create_text( 30, 30, text=self.points, font='28' )
+        self.id = canvas.create_oval(0, 0, 0, 0)
 
     def new_target(self):
         """ Инициализация новой цели. """
-        x = self.x = rnd( 600, 750 )
-        y = self.y = rnd( 50, 450 )
-        r = self.r = rnd( 2, 50 )
-        self.vx=rnd(1,10)
-        self.vy=rnd(1,10)
-        color = self.color = 'red'
-        canvas.coords( self.id, x - r, y - r, x + r, y + r )
-        canvas.itemconfig( self.id, fill=color )
+
+        canvas.coords(self.id, self.x - self.r, self.y - self.r, self.x + self.r, self.y + self.r)
+        canvas.itemconfig(self.id, fill=self.color)
 
     def hit(self, points=1):
         """Попадание шарика в цель."""
-        canvas.coords( self.id, -10, -10, -10, -10 )
+        canvas.delete(self.id)  # canvas.coords( self.id, -10, -10, -10, -10 )
         self.points += points
-        canvas.itemconfig( self.id_points, text=self.points )
 
     def move_t(self):
-        self.x+=self.vx
-        self.y+=self.vy
+        self.x += self.vx
+        self.y += self.vy
         if self.x + self.r >= 800 - self.vx or self.x + self.r <= 600 - self.vx:
-            self.vx=-self.vx
+            self.vx = -self.vx
         if self.y + self.r >= 540 - self.vy or self.y <= 0 - self.vy:
-            self.vy=-self.vy
-        canvas.move(self.id,self.vx,self.vy)
+            self.vy = -self.vy
+        canvas.move(self.id, self.vx, self.vy)
 
 
-t1 = Target()
-t2 = Target()
-screen1 = canvas.create_text( 400, 50, text='', font='28' )
-g1 = Gun()
-bullet = 0
 balls = []
 
 
-def new_game(event=''):
-    global g1, t1, t2, screen1, balls, bullet
-    t1.new_target()
-    t2.new_target()
-    bullet = 0
-    balls = []
-    canvas.bind( '<Button-1>', g1.fire2_start )
-    canvas.bind( '<ButtonRelease-1>', g1.fire2_end )
-    canvas.bind( '<Motion>', g1.targetting )
+def new_game():
+    global balls
+    t1 = Target()
+    t2 = Target()
+    g1 = Gun()
     z = 0.03
     t1.live = 1
     t2.live = 1
-    while t1.live or t2.live or balls:
+    balls = []
+    text = Texts()
+    t1.new_target()
+    t2.new_target()
+    canvas.bind('<Button-1>', g1.fire2_start)
+    canvas.bind('<ButtonRelease-1>', g1.fire2_end)
+    canvas.bind('<Motion>', g1.targeting)
+    while t1.live or t2.live:
         for b in balls:
             b.move()
-            if b.hittest(t1) and t1.live:
+            if b.hit_test(t1) and t1.live:
                 t1.live = 0
                 t1.hit()
-                canvas.itemconfig(screen1, text='Вы уничтожили цель за ' + str( bullet ) + ' выстрелов')
-            if b.hittest(t2) and t2.live:
+                text.try_s(balls)
+            if b.hit_test(t2) and t2.live:
                 t2.live = 0
                 t2.hit()
-                canvas.itemconfig(screen1, text='Вы уничтожили цель за ' + str( bullet ) + ' выстрелов')
+                text.try_s(balls)
+        text.points = t1.points + t2.points
+        text.hits()
         t1.move_t()
         t2.move_t()
         canvas.update()
         time.sleep(z)
-        g1.targetting()
+        g1.targeting()
         g1.power_up()
-    canvas.itemconfig( screen1, text='' )
-    canvas.delete( g1 )
-    root.after( 750, new_game )
+    text.delete_hits()
+    g1.gun_delete()
+
+    root.after(200, new_game)
 
 
 new_game()
