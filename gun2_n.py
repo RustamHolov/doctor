@@ -3,7 +3,6 @@ import tkinter as tk
 import math
 import time
 
-# print (dir(math))
 
 root = tk.Tk()
 fr = tk.Frame(root)
